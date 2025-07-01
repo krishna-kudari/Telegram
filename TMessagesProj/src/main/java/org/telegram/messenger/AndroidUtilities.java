@@ -6604,4 +6604,8 @@ public class AndroidUtilities {
         }
         return false;
     }
+
+    public static float getVisualY(View view) {
+        return  view.getY() - ((view.getHeight() * view.getScaleY()) - view.getHeight()) / 2f;
+    }
 }
