@@ -1,6 +1,7 @@
 package org.telegram.ui.Stars;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
+import static org.telegram.messenger.AndroidUtilities.dpf2;
 import static org.telegram.messenger.AndroidUtilities.lerp;
 import static org.telegram.ui.Stars.StarsController.findAttribute;
 
@@ -42,6 +43,14 @@ public class ProfileGiftsView extends View implements NotificationCenter.Notific
     private final View avatarContainer;
     private final ProfileActivity.AvatarImageView avatarImage;
     private final Theme.ResourcesProvider resourcesProvider;
+
+    private float progressToCenter = 0f;
+    public void setProgressToCenter(float progress) {
+        if (this.progressToCenter != progress) {
+            this.progressToCenter = progress;
+            invalidate();
+        }
+    }
 
     public ProfileGiftsView(Context context, int currentAccount, long dialogId, @NonNull View avatarContainer, ProfileActivity.AvatarImageView avatarImage, Theme.ResourcesProvider resourcesProvider) {
         super(context);
@@ -324,100 +333,83 @@ public class ProfileGiftsView extends View implements NotificationCenter.Notific
     protected void dispatchDraw(@NonNull Canvas canvas) {
         if (gifts.isEmpty() || expandProgress >= 1.0f) return;
 
-        final float ax = avatarContainer.getX();
-        final float ay = avatarContainer.getY();
-        final float aw = (avatarContainer.getWidth()) * avatarContainer.getScaleX();
-        final float ah = (avatarContainer.getHeight()) * avatarContainer.getScaleY();
+        int[] staggerOrder = {3, 0, 1, 2, 5, 4}; // order: 30°, 150°, 210°, -30°, 5°, 185°
+
+        final float avatarW = avatarContainer.getWidth();
+        final float avatarH = avatarContainer.getHeight();
+        final float scaleX = avatarContainer.getScaleX();
+        final float scaleY = avatarContainer.getScaleY();
+
+        final float avatarCx = avatarContainer.getX() + avatarW / 2f;
+        final float avatarCy = avatarContainer.getY();
+        final float avatarCenterY = avatarCy + (avatarH * scaleY) / 2f;
+
+        final float baseRadius = (Math.min(avatarW * scaleX, avatarH * scaleY) / 2f) + dp(32);
+
+        final double[] ANGLES = {
+                Math.toRadians(210),
+                Math.toRadians(-30),
+                Math.toRadians(150),
+                Math.toRadians(30),
+                Math.toRadians(185),
+                Math.toRadians(5),
+        };
 
         canvas.save();
-        canvas.clipRect(0, 0, getWidth(), expandY);
+        canvas.clipRect(0, 0, getWidth(), getHeight());
 
-        final float acx = ax + aw / 2.0f;
-        final float cacx = Math.min(acx, dp(48));
-        final float acy = ay + ah / 2.0f;
-        final float ar = Math.min(aw, ah) / 2.0f + dp(6);
-        final float cx = getWidth() / 2.0f;
+        final float delayPerItem = 0.12f;
+        final float itemDuration = 0.4f;
 
-        final float closedAlpha = Utilities.clamp01((float) (expandY - (AndroidUtilities.statusBarHeight + ActionBar.getCurrentActionBarHeight())) / dp(50));
+        for (int i = 0; i < Math.min(ANGLES.length, gifts.size()); i++) {
+            Gift gift = gifts.get(i);
+            double angle = ANGLES[i];
 
-        for (int i = 0; i < gifts.size(); ++i) {
-            final Gift gift = gifts.get(i);
-            final float alpha = gift.animatedFloat.set(1.0f);
-            final float scale = lerp(0.5f, 1.0f, alpha);
-            final int index = i; // gifts.size() == maxCount ? i - 1 : i;
-            if (index == 0) {
-                gift.draw(
-                    canvas,
-                    (float) (acx + ar * Math.cos(-65 / 180.0f * Math.PI)),
-                    (float) (acy + ar * Math.sin(-65 / 180.0f * Math.PI)),
-                    scale, -65 + 90,
-                    alpha * (1.0f - expandProgress), lerp(0.9f, 0.25f, actionBarProgress)
-                );
-            } else if (index == 1) {
-                gift.draw(
-                    canvas,
-                    lerp(cacx + Math.min(getWidth() * .27f, dp(62)), cx, 0.5f * actionBarProgress), acy - dp(52),
-                    scale, -4.0f,
-                    alpha * alpha * (1.0f - expandProgress) * (1.0f - actionBarProgress) * (closedAlpha),
-                    1.0f
-                );
-            } else if (index == 2) {
-                gift.draw(
-                    canvas,
-                    lerp(cacx + Math.min(getWidth() * .46f, dp(105)), cx, 0.5f * actionBarProgress), acy - dp(72),
-                    scale, 8.0f,
-                    alpha * (1.0f - expandProgress) * (1.0f - actionBarProgress) * (closedAlpha),
-                    1.0f
-                );
-            } else if (index == 3) {
-                gift.draw(
-                    canvas,
-                    lerp(cacx + Math.min(getWidth() * .60f, dp(136)), cx, 0.5f * actionBarProgress), acy - dp(46),
-                    scale, 3.0f,
-                    alpha * (1.0f - expandProgress) * (1.0f - actionBarProgress) * (closedAlpha),
-                    1.0f
-                );
-            } else if (index == 4) {
-                gift.draw(
-                    canvas,
-                    lerp(cacx + Math.min(getWidth() * .08f, dp(21.6f)), cx, 0.5f * actionBarProgress), acy - dp(82f),
-                    scale, -3.0f,
-                    alpha * (1.0f - expandProgress) * (1.0f - actionBarProgress) * (closedAlpha),
-                    1.0f
-                );
-            } else if (index == 5) {
-                gift.draw(
-                    canvas,
-                    lerp(cacx + Math.min(getWidth() * .745f, dp(186)), cx, 0.5f * actionBarProgress), acy - dp(39),
-                    scale, 2.0f,
-                    alpha * (1.0f - expandProgress) * (1.0f - actionBarProgress) * (closedAlpha),
-                    1.0f
-                );
-            } else if (index == 6) {
-                gift.draw(
-                    canvas,
-                    cacx + Math.min(getWidth() * .38f, dp(102)), expandY - dp(12),
-                    scale, 0,
-                    alpha * (1.0f - expandProgress) * (1.0f - actionBarProgress) * (closedAlpha),
-                    1.0f
-                );
-            } else if (index == 7) {
-                gift.draw(
-                    canvas,
-                    cacx + Math.min(getWidth() * .135f, dp(36)), expandY - dp(17.6f),
-                    scale, -5.0f,
-                    alpha * (1.0f - expandProgress) * (1.0f - actionBarProgress) * (closedAlpha),
-                    1.0f
-                );
-            } else if (index == 8) {
-                gift.draw(
-                    canvas,
-                    cacx + Math.min(getWidth() * .76f, dp(178)), expandY - dp(21.66f),
-                    scale, 5.0f,
-                    alpha * (1.0f - expandProgress) * (1.0f - actionBarProgress) * (closedAlpha),
-                    1.0f
-                );
+            float cos = (float) Math.cos(angle);
+            float sin = (float) Math.sin(angle);
+
+            // Diamond distortion
+            float stretchX = 1f + 0.6f * (1f - Math.abs(sin));
+            float stretchY = 1f - 0.3f * (1f - Math.abs(cos));
+
+            float diamondX = avatarCx + baseRadius * cos * stretchX;
+            float diamondY = avatarCenterY + baseRadius * sin * stretchY;
+
+            // Find stagger index for this gift
+            int staggerIndex = 0;
+            for (int j = 0; j < staggerOrder.length; j++) {
+                if (staggerOrder[j] == i) {
+                    staggerIndex = j;
+                    break;
+                }
             }
+
+            // Staggered local progress
+            float itemStart = delayPerItem * staggerIndex;
+            float itemEnd = itemStart + itemDuration;
+            float localProgress = (progressToCenter - itemStart) / (itemEnd - itemStart);
+            if (localProgress < 0f ){
+                localProgress = 0f;
+            } else if (localProgress > 1f) {
+                localProgress = 1f;
+            }
+
+            // Ease and apply parabolic path
+            float eased = CubicBezierInterpolator.EASE_OUT_QUINT.getInterpolation(localProgress);
+            float curveY = eased * eased; // y = x^2
+
+            float drawX = lerp(diamondX, avatarCx, eased);      // linear X
+            float drawY = lerp(diamondY, avatarCenterY, curveY); // curved Y
+
+            gift.draw(
+                    canvas,
+                    drawX,
+                    drawY,
+                    1.0f,
+                    (float) Math.toDegrees(angle),
+                    1.0f,
+                    1.0f
+            );
         }
 
         canvas.restore();
