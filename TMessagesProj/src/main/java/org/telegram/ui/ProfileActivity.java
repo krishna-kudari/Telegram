@@ -7550,7 +7550,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             }
 
             avatarX = avatarContainer.getX();
-            avatarY = AndroidUtilities.lerp(AndroidUtilities.dpf2(-42), (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0), diff);
+            avatarY = AndroidUtilities.lerp(AndroidUtilities.dpf2(-42), (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + AndroidUtilities.dpf2(20f), diff);
 
             float h = openAnimationInProgress ? initialAnimationExtraHeight : extraHeight;
 
@@ -7800,7 +7800,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
                 gooeyEffectAinmView.setProgress(diff);
 
-                nameY = AndroidUtilities.lerp((actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + AndroidUtilities.dpf2(7), (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + AndroidUtilities.dpf2(110 + 15), diff);
+                nameY = AndroidUtilities.lerp((actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + AndroidUtilities.dpf2(7), (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + AndroidUtilities.dpf2(130 + 15), diff);
                 float width2 = onlineTextView[1].getPaint().measureText(onlineTextView[1].getText().toString()) + onlineTextView[1].getSideDrawablesSize();
                 float width1 = nameTextView[1].getPaint().measureText(nameTextView[1].getText().toString()) + nameTextView[1].getSideDrawablesSize();
                 onlineY = (float) Math.floor(nameY) + AndroidUtilities.dp(25);

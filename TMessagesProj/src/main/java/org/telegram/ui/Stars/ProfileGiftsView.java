@@ -333,7 +333,22 @@ public class ProfileGiftsView extends View implements NotificationCenter.Notific
     protected void dispatchDraw(@NonNull Canvas canvas) {
         if (gifts.isEmpty() || expandProgress >= 1.0f) return;
 
-        int[] staggerOrder = {3, 0, 1, 2, 5, 4}; // order: 30°, 150°, 210°, -30°, 5°, 185°
+        // 6 angles for 6 gifts
+        final double[] ANGLES = {
+                Math.toRadians(200),
+                Math.toRadians(-25),
+                Math.toRadians(150),
+                Math.toRadians(35),
+                Math.toRadians(170),
+                Math.toRadians(5),
+        };
+
+        // Group definition: pairs
+        final int[][] GROUPS = {
+                {0, 3}, // group 0
+                {1, 2}, // group 1
+                {4, 5}, // group 2
+        };
 
         final float avatarW = avatarContainer.getWidth();
         final float avatarH = avatarContainer.getHeight();
@@ -346,20 +361,13 @@ public class ProfileGiftsView extends View implements NotificationCenter.Notific
 
         final float baseRadius = (Math.min(avatarW * scaleX, avatarH * scaleY) / 2f) + dp(32);
 
-        final double[] ANGLES = {
-                Math.toRadians(210),
-                Math.toRadians(-30),
-                Math.toRadians(150),
-                Math.toRadians(30),
-                Math.toRadians(185),
-                Math.toRadians(5),
-        };
+        // Initial delay before anything starts
+        final float globalStart = 0.15f;
+        final float groupDelay = 0.12f;
+        final float itemDuration = 0.4f;
 
         canvas.save();
         canvas.clipRect(0, 0, getWidth(), getHeight());
-
-        final float delayPerItem = 0.12f;
-        final float itemDuration = 0.4f;
 
         for (int i = 0; i < Math.min(ANGLES.length, gifts.size()); i++) {
             Gift gift = gifts.get(i);
@@ -368,38 +376,38 @@ public class ProfileGiftsView extends View implements NotificationCenter.Notific
             float cos = (float) Math.cos(angle);
             float sin = (float) Math.sin(angle);
 
-            // Diamond distortion
+            // Diamond shape distortion
             float stretchX = 1f + 0.6f * (1f - Math.abs(sin));
-            float stretchY = 1f - 0.3f * (1f - Math.abs(cos));
+            float stretchY = 1f + 0.2f * (Math.abs(cos));
 
             float diamondX = avatarCx + baseRadius * cos * stretchX;
             float diamondY = avatarCenterY + baseRadius * sin * stretchY;
 
-            // Find stagger index for this gift
-            int staggerIndex = 0;
-            for (int j = 0; j < staggerOrder.length; j++) {
-                if (staggerOrder[j] == i) {
-                    staggerIndex = j;
-                    break;
+            // Find group index
+            int groupIndex = 0;
+            for (int g = 0; g < GROUPS.length; g++) {
+                for (int member : GROUPS[g]) {
+                    if (member == i) {
+                        groupIndex = g;
+                        break;
+                    }
                 }
             }
 
-            // Staggered local progress
-            float itemStart = delayPerItem * staggerIndex;
-            float itemEnd = itemStart + itemDuration;
-            float localProgress = (progressToCenter - itemStart) / (itemEnd - itemStart);
-            if (localProgress < 0f ){
-                localProgress = 0f;
-            } else if (localProgress > 1f) {
-                localProgress = 1f;
-            }
+            // Compute group delay
+            float groupStart = globalStart + groupDelay * groupIndex;
+            float groupEnd = groupStart + itemDuration;
 
-            // Ease and apply parabolic path
+            // Compute normalized local progress
+            float localProgress = (progressToCenter - groupStart) / (groupEnd - groupStart);
+            if (localProgress < 0f) localProgress = 0f;
+            if (localProgress > 1f) localProgress = 1f;
+
             float eased = CubicBezierInterpolator.EASE_OUT_QUINT.getInterpolation(localProgress);
-            float curveY = eased * eased; // y = x^2
+            float curveY = eased * eased;
 
-            float drawX = lerp(diamondX, avatarCx, eased);      // linear X
-            float drawY = lerp(diamondY, avatarCenterY, curveY); // curved Y
+            float drawX = lerp(diamondX, avatarCx, eased);
+            float drawY = lerp(diamondY, avatarCenterY, curveY);
 
             gift.draw(
                     canvas,
