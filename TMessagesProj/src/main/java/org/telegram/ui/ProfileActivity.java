@@ -5124,6 +5124,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         avatarContainer2.addView(avatarContainer, LayoutHelper.createFrame(42, 42, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 0, 0, 0));
         gooeyEffectAinmView = new GooeyEffectAinmView(context, null);
         frameLayout.addView(gooeyEffectAinmView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
+        gooeyEffectAinmView.setVisibility(View.GONE);
 
         avatarImage = new AvatarImageView(context) {
             @Override
@@ -7557,6 +7558,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             float h = openAnimationInProgress ? initialAnimationExtraHeight : extraHeight;
 
             if (h > AndroidUtilities.dp(initialExtraHeight) || isPulledDown) { // enlarge animation
+                gooeyEffectAinmView.setVisibility(View.GONE);
                 expandProgress = Math.max(0f, Math.min(1f, (h - AndroidUtilities.dp(initialExtraHeight)) / (listView.getMeasuredWidth() - newTop - AndroidUtilities.dp(initialExtraHeight))));
                 avatarScale = AndroidUtilities.lerp((42f + 68f) / 42f, (42f + 68f + 68f) / 42f, Math.min(1f, expandProgress * 3f));
                 if (storyView != null) {
@@ -7711,7 +7713,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             }
 
             if (openAnimationInProgress && playProfileAnimation == 2) { // direct expand of avatar by clicking on avatar
-                float avX = 0;
+                gooeyEffectAinmView.setVisibility(View.GONE);
                 float avY = (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + ActionBar.getCurrentActionBarHeight() / 2.0f - 21 * AndroidUtilities.density + actionBar.getTranslationY();
 
                 nameTextView[0].setTranslationX(0);
@@ -7797,6 +7799,12 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     starFgItem.setTranslationY(avatarContainer.getY() + AndroidUtilities.dp(24) + extra);
                 }
 
+
+                if (diff == 0f) {
+                    gooeyEffectAinmView.setVisibility(View.GONE);
+                } else {
+                    gooeyEffectAinmView.setVisibility(View.VISIBLE);
+                }
                 gooeyEffectAinmView.setProgress(diff);
 
                 nameY = AndroidUtilities.lerp((actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + AndroidUtilities.dpf2(7), (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + AndroidUtilities.dpf2(130 + 15), diff);
