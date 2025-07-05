@@ -216,8 +216,8 @@ public class StarGiftPatterns {
 
         final float baseRadius1 = dp(80);  // slightly smaller diamond
         final float baseRadius2 = dp(130); // outer diamond
-        final float[] sizes1 = new float[] { 20, 20, 20, 20, 20, 20, 20, 20 };
-        final float[] sizes2 = new float[] { 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, 15 };
+        final float[] sizes1 = new float[] { 30, 30, 30, 30, 30, 30, 30, 30 };
+        final float[] sizes2 = new float[] { 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25 };
 
         final double[] angles1 = new double[8];
         for (int i = 0; i < 8; i++) angles1[i] = Math.toRadians(i * 45); // 8-way diamond
@@ -228,8 +228,8 @@ public class StarGiftPatterns {
         final float effectiveProgress = (progress - 0.25f) / 0.75f; // starts at 0.25, ends at 1
         final float maxDelay = 0.25f;
 
-        drawLayer(canvas, pattern, centerX, centerY, alpha, effectiveProgress, scale, baseRadius1, angles1, sizes1, false, maxDelay);
-        drawLayer(canvas, pattern, centerX, centerY, alpha, effectiveProgress, scale, baseRadius2, angles2, sizes2, true, maxDelay + 0.1f);
+        drawLayer(canvas, pattern, centerX, centerY, alpha, effectiveProgress, 1, baseRadius1, angles1, sizes1, false, maxDelay);
+        drawLayer(canvas, pattern, centerX, centerY, alpha, effectiveProgress, 1, baseRadius2, angles2, sizes2, true, maxDelay + 0.1f);
     }
 
     private static void drawLayer(Canvas canvas, Drawable pattern, float centerX, float centerY, float alpha, float progressToCenter, float scale,
@@ -262,8 +262,14 @@ public class StarGiftPatterns {
             float x = lerp(targetX, centerX, eased);
             float y = lerp(targetY, centerY, curvedY);
 
-            float size = dp(sizes[i]) * scale;
-            float layerAlpha = isSecondLayer ? 0.25f : 0.5f;
+            float sizeMultiplier;
+            if (isSecondLayer) {
+                sizeMultiplier = lerp(1.0f, 0.5f, eased); // shrink to 50% by center
+            } else {
+                sizeMultiplier = lerp(1.0f, 0.3f, eased); // slightly shrink first layer
+            }
+            float size = dpf2(sizes[i]) * sizeMultiplier;
+            float layerAlpha = isSecondLayer ? 0.18f : 0.35f;
 
             pattern.setBounds(
                     (int)(x - size / 2f), (int)(y - size / 2f),

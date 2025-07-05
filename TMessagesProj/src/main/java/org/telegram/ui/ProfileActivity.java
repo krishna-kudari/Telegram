@@ -44,6 +44,8 @@ import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorFilter;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.ComposePathEffect;
 import android.graphics.CornerPathEffect;
 import android.graphics.DiscretePathEffect;
@@ -376,6 +378,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private DrawerProfileCell.AnimatedStatusView animatedStatusView;
     private AvatarImageView avatarImage;
     private View avatarOverlay;
+    private ImageView blurredAvatarImage;
     private AnimatorSet avatarAnimation;
     private RadialProgressView avatarProgressView;
     private ImageView timeItem;
@@ -819,6 +822,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         private Path mCombinedPath;
 
         private Paint mPaint;
+        private Paint mBottomCirclePaint;
         private float mSmallCircleRadius;
 
         private final float LARGE_CIRCLE_RADIUS = AndroidUtilities.dpf2(100);
@@ -841,7 +845,9 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
             mPaint.setColor(Color.BLACK);
             mPaint.setStyle(Paint.Style.FILL);
-
+            mBottomCirclePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+            mBottomCirclePaint.setColor(Color.BLACK);
+            mBottomCirclePaint.setStyle(Paint.Style.FILL);
             mSmallCircleProgress = 0f;
         }
 
@@ -905,31 +911,34 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             initGooeyPath();
             canvas.drawPath(mCombinedPath, mPaint);
             if ((mSmallCircleY) <= (mLargeCircleY + LARGE_CIRCLE_RADIUS)) {
-                Bitmap img = getBitmapFromView(avatarImage);
-                RSBlurProcessor blurrProcessor = new RSBlurProcessor(RenderScript.create(getContext()));
-                float startRadius = 0.1f;
-                float endRadius = 2f;
-                float currentRadius = AndroidUtilities.lerp(startRadius, endRadius, 1-mSmallCircleProgress);
-                Bitmap blurredImage = blurrProcessor.blur(img, currentRadius, 1);
-                if (blurredImage != null) {
-                    // Get path bounds
-                    RectF pathBounds = new RectF();
-                    mBottomCirclePath.computeBounds(pathBounds, true);
-
-                    // Scale blurred bitmap to fit path bounds
-                    Bitmap scaledBlurredImage = Bitmap.createScaledBitmap(
-                            blurredImage,
-                            (int) pathBounds.width(),
-                            (int) pathBounds.height(),
-                            true
-                    );
-
-                    // Draw the scaled bitmap inside the clipped path
-                    canvas.save();
-                    canvas.clipPath(mBottomCirclePath);
-                    canvas.drawBitmap(scaledBlurredImage, pathBounds.left, pathBounds.top, null);
-                    canvas.restore();
-                }
+                int alpha = (int) ((1-mSmallCircleProgress)* 255); // progress: 0 -> transparent, 1 -> opaque
+                mBottomCirclePaint.setAlpha(alpha);
+                canvas.drawPath(mBottomCirclePath, mBottomCirclePaint);
+//                Bitmap img = getBitmapFromView(avatarImage);
+//                RSBlurProcessor blurrProcessor = new RSBlurProcessor(RenderScript.create(getContext()));
+//                float startRadius = 0.1f;
+//                float endRadius = 2f;
+//                float currentRadius = AndroidUtilities.lerp(startRadius, endRadius, 1-mSmallCircleProgress);
+//                Bitmap blurredImage = blurrProcessor.blur(img, currentRadius, 1);
+//                if (blurredImage != null) {
+//                    // Get path bounds
+//                    RectF pathBounds = new RectF();
+//                    mBottomCirclePath.computeBounds(pathBounds, true);
+//
+//                    // Scale blurred bitmap to fit path bounds
+//                    Bitmap scaledBlurredImage = Bitmap.createScaledBitmap(
+//                            blurredImage,
+//                            (int) pathBounds.width(),
+//                            (int) pathBounds.height(),
+//                            true
+//                    );
+//
+//                    // Draw the scaled bitmap inside the clipped path
+//                    canvas.save();
+//                    canvas.clipPath(mBottomCirclePath);
+//                    canvas.drawBitmap(scaledBlurredImage, pathBounds.left, pathBounds.top, null);
+//                    canvas.restore();
+//                }
             }
         }
     }
@@ -5123,8 +5132,10 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         avatarContainer.setPivotY(0);
         avatarContainer2.addView(avatarContainer, LayoutHelper.createFrame(42, 42, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 0, 0, 0, 0));
         gooeyEffectAinmView = new GooeyEffectAinmView(context, null);
-        frameLayout.addView(gooeyEffectAinmView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
+        avatarContainer2.addView(gooeyEffectAinmView, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
         gooeyEffectAinmView.setVisibility(View.GONE);
+        avatarContainer.bringToFront();
+        avatarContainer2.requestLayout();
 
         avatarImage = new AvatarImageView(context) {
             @Override
@@ -7806,6 +7817,45 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     gooeyEffectAinmView.setVisibility(View.VISIBLE);
                 }
                 gooeyEffectAinmView.setProgress(diff);
+
+                if (avatarContainer.getY() <= AndroidUtilities.dp(5)) {
+                    Bitmap img = avatarImage.getImageReceiver().getBitmap();
+                    if (img != null && !img.isRecycled()  && blurredAvatarImage == null) {
+                        RSBlurProcessor blurrProcessor = new RSBlurProcessor(RenderScript.create(getContext()));
+                        Bitmap blurredImage = blurrProcessor.blur(img, 15, 2);
+                        if (blurredImage != null) {
+                            blurredAvatarImage = new ImageView(getContext());
+                            blurredAvatarImage.setImageBitmap(blurredImage);
+                            avatarContainer.addView(blurredAvatarImage, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER));
+                            blurredAvatarImage.setVisibility(View.VISIBLE);
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                                blurredAvatarImage.setClipToOutline(true);
+                                blurredAvatarImage.setOutlineProvider(new ViewOutlineProvider() {
+                                    @Override
+                                    public void getOutline(View view, Outline outline) {
+                                        int size = Math.min(view.getWidth(), view.getHeight());
+                                        outline.setOval(0, 0, size, size);
+                                    }
+                                });
+                            }
+                            blurredAvatarImage.bringToFront();
+                            avatarContainer.requestLayout();
+                        }
+                    } else {
+                        ColorMatrix cm = new ColorMatrix();
+                        cm.setSaturation(0); // optional, for grayscale
+                        ColorMatrixColorFilter filter = new ColorMatrixColorFilter(cm);
+                        blurredAvatarImage.getDrawable().setColorFilter(filter);
+                        blurredAvatarImage.setColorFilter(new PorterDuffColorFilter(Color.BLACK, PorterDuff.Mode.SRC_ATOP));
+                        float darknessDiff = (dp(5f) - avatarContainer.getY()) / dp(47f);
+                        blurredAvatarImage.setImageAlpha((int) (darknessDiff * 255));
+                        blurredAvatarImage.setVisibility(View.VISIBLE);
+                        blurredAvatarImage.bringToFront();
+                        avatarContainer.requestLayout();
+                    }
+                } else if (blurredAvatarImage != null) {
+                    blurredAvatarImage.setVisibility(View.GONE);
+                }
 
                 nameY = AndroidUtilities.lerp((actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + AndroidUtilities.dpf2(7), (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + AndroidUtilities.dpf2(130 + 15), diff);
                 float width2 = onlineTextView[1].getPaint().measureText(onlineTextView[1].getText().toString()) + onlineTextView[1].getSideDrawablesSize();
