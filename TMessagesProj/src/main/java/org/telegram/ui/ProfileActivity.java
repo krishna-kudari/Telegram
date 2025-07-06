@@ -10,6 +10,7 @@ package org.telegram.ui;
 
 import static androidx.core.view.ViewCompat.TYPE_TOUCH;
 import static org.telegram.messenger.AndroidUtilities.dp;
+import static org.telegram.messenger.AndroidUtilities.dpf2;
 import static org.telegram.messenger.AndroidUtilities.lerp;
 import static org.telegram.messenger.ContactsController.PRIVACY_RULES_TYPE_ADDED_BY_PHONE;
 import static org.telegram.messenger.LocaleController.formatPluralString;
@@ -111,6 +112,7 @@ import android.view.animation.LinearInterpolator;
 import android.webkit.CookieManager;
 import android.webkit.WebStorage;
 import android.webkit.WebView;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -375,6 +377,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private HintView fwdRestrictedHint;
     private FrameLayout avatarContainer;
     private FrameLayout avatarContainer2;
+    private LinearLayout buttonsContainer;
     private DrawerProfileCell.AnimatedStatusView animatedStatusView;
     private AvatarImageView avatarImage;
     private View avatarOverlay;
@@ -1724,6 +1727,51 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             invalidate();
         }
     }
+
+    public View createButton(Context context, String label, String tag, int icResId) {
+        // Parent layout for button
+        LinearLayout button = new LinearLayout(context);
+        button.setOrientation(LinearLayout.VERTICAL);
+        button.setGravity(Gravity.CENTER_HORIZONTAL);
+        button.setTag(tag);
+        button.setPadding(
+                AndroidUtilities.dp(6),
+                AndroidUtilities.dp(8),
+                AndroidUtilities.dp(6),
+                AndroidUtilities.dp(8)
+        );
+
+        // Background with rounded corners and semi-transparent color
+        GradientDrawable bgDrawable = new GradientDrawable();
+        bgDrawable.setColor(0x33000000); // 20% opacity Black
+        bgDrawable.setCornerRadius(AndroidUtilities.dp(14));
+        button.setBackground(bgDrawable);
+
+        // Icon
+        ImageView icon = new ImageView(context);
+        icon.setImageResource(icResId);
+        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        iconParams.bottomMargin = AndroidUtilities.dp(6); // Gap between icon and label
+        button.addView(icon, iconParams);
+
+        // Label
+        TextView textView = new TextView(context);
+        textView.setText(label);
+        textView.setTextSize(14);
+        textView.setTextColor(Color.WHITE);
+        textView.setGravity(Gravity.CENTER);
+        textView.setMaxLines(1);
+        button.addView(textView, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
+
+        return button;
+    }
+
 
     private class NestedFrameLayout extends SizeNotifierFrameLayout implements NestedScrollingParent3 {
 
@@ -5474,7 +5522,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 writeButton.setImageResource(R.drawable.profile_newmsg);
                 writeButton.setContentDescription(LocaleController.getString(R.string.AccDescrOpenChat));
             }
-        } else {
+        } else { // message button
             writeButton.setImageResource(R.drawable.profile_discuss);
             writeButton.setContentDescription(LocaleController.getString(R.string.ViewDiscussion));
         }
@@ -5487,6 +5535,30 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             }
             onWriteButtonClick();
         });
+
+        // init buttons
+        buttonsContainer = new LinearLayout(getContext());
+        buttonsContainer.setOrientation(LinearLayout.HORIZONTAL);
+        buttonsContainer.setGravity(Gravity.CENTER_VERTICAL);
+        avatarContainer2.addView(buttonsContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 12f, 0, 12f, 0f));
+
+        String[] buttonLabels = {"Message", "Mute", "Call", "Video"}; // Can vary
+        int[] buttonIcons = {R.drawable.ic_message_profile, R.drawable.ic_mute_profile, R.drawable.ic_call_profile, R.drawable.ic_video_profile}; // Corresponding icons
+        for (int i = 0; i < buttonLabels.length; i++) {
+            View button = createButton(getContext(), buttonLabels[i], buttonLabels[i], buttonIcons[i]);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f
+            );
+
+            if (i < buttonLabels.length - 1) {
+                params.setMarginEnd(dp(10));
+            }
+            button.setLayoutParams(params);
+            buttonsContainer.addView(button);
+        }
+
         needLayout(false);
 
         if (scrollTo != -1) {
@@ -7857,7 +7929,13 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     blurredAvatarImage.setVisibility(View.GONE);
                 }
 
-                nameY = AndroidUtilities.lerp((actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + AndroidUtilities.dpf2(7), (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + AndroidUtilities.dpf2(130 + 15), diff);
+                float easedDiff = diff * diff; // Accelerate over time like y = x^2
+                nameY = AndroidUtilities.lerp(
+                        (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + AndroidUtilities.dpf2(7),
+                        (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + AndroidUtilities.dpf2(130 + 15),
+                        easedDiff
+                );
+//                nameY = AndroidUtilities.lerp((actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + AndroidUtilities.dpf2(7), (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + AndroidUtilities.dpf2(130 + 15), diff);
                 float width2 = onlineTextView[1].getPaint().measureText(onlineTextView[1].getText().toString()) + onlineTextView[1].getSideDrawablesSize();
                 float width1 = nameTextView[1].getPaint().measureText(nameTextView[1].getText().toString()) * nameTextView[1].getScaleX() + nameTextView[1].getSideDrawablesSize();
                 onlineY = (float) Math.floor(nameY) + AndroidUtilities.dp(25);
@@ -7892,6 +7970,28 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     nameTextView[a].setScaleY(nameScale);
                 }
                 updateCollectibleHint();
+
+                if (buttonsContainer != null) {
+                    float containerY = buttonsContainer.getY();
+                    float startY = newTop - buttonsContainer.getHeight();
+                    float endY = newTop;
+
+                    // Clamp progress to [0, 1]
+                    float hideProgress = Math.min(1f, Math.max(0f, 1f - (containerY - startY) / (endY - startY)));
+
+                    // Linearly fade out and shrink as hideProgress goes from 0 → 1
+                    buttonsContainer.setAlpha(1f - hideProgress);
+                    buttonsContainer.setScaleY(1f - hideProgress);
+
+                    if (hideProgress == 1f) {
+                        buttonsContainer.setVisibility(View.GONE);
+                    } else if (buttonsContainer.getVisibility() != View.VISIBLE) {
+                        buttonsContainer.setVisibility(View.VISIBLE);
+                    }
+
+                    // Optional: reset translation if you're changing Y manually elsewhere
+                    buttonsContainer.setTranslationY(newTop + extraHeight - buttonsContainer.getHeight() - AndroidUtilities.dp(12));
+                }
             }
 
             if (!openAnimationInProgress && (expandAnimator == null || !expandAnimator.isRunning())) {
