@@ -7841,13 +7841,13 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                             blurredAvatarImage.bringToFront();
                             avatarContainer.requestLayout();
                         }
-                    } else {
+                    } else if (blurredAvatarImage != null) {
                         ColorMatrix cm = new ColorMatrix();
                         cm.setSaturation(0); // optional, for grayscale
                         ColorMatrixColorFilter filter = new ColorMatrixColorFilter(cm);
                         blurredAvatarImage.getDrawable().setColorFilter(filter);
                         blurredAvatarImage.setColorFilter(new PorterDuffColorFilter(Color.BLACK, PorterDuff.Mode.SRC_ATOP));
-                        float darknessDiff = (dp(5f) - avatarContainer.getY()) / dp(47f);
+                        float darknessDiff = MathUtils.clamp((dp(5f) - avatarContainer.getY()) / dp(30f),0f,1f);
                         blurredAvatarImage.setImageAlpha((int) (darknessDiff * 255));
                         blurredAvatarImage.setVisibility(View.VISIBLE);
                         blurredAvatarImage.bringToFront();
