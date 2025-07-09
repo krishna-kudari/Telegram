@@ -7714,7 +7714,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                         mediaCounterTextView.setTranslationX(onlineTextView[1].getTranslationX());
                         mediaCounterTextView.setTranslationY(onlineTextView[1].getTranslationY());
                         nameTextView[1].setTextShadow(4.0f, 2.0f, 2.0f, 0x77000000);
-                        onlineTextView[1].setTextShadow(1.0f, 0.5f, 0.5f, 0x11000000);
+                        onlineTextView[1].setTextShadow(2.0f, 1f, 1f, 0x55000000);
                         updateCollectibleHint();
                     }
                 }
