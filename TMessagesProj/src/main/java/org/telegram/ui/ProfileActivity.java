@@ -120,6 +120,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.DrawableRes;
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -379,6 +380,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private FrameLayout avatarContainer;
     private FrameLayout avatarContainer2;
     private LinearLayout buttonsContainer;
+    private IconTextButtonView notificationsButton;
     private DrawerProfileCell.AnimatedStatusView animatedStatusView;
     private AvatarImageView avatarImage;
     private View avatarOverlay;
@@ -1710,55 +1712,98 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
     }
 
-    public View createButton(Context context, String label, String tag, int icResId) {
-        // Parent layout for button
-        LinearLayout button = new LinearLayout(context);
-        button.setOrientation(LinearLayout.VERTICAL);
-        button.setGravity(Gravity.CENTER_HORIZONTAL);
-        button.setTag(tag);
-        button.setPadding(
-                AndroidUtilities.dp(6),
-                AndroidUtilities.dp(8),
-                AndroidUtilities.dp(6),
-                AndroidUtilities.dp(8)
-        );
+    public static class IconTextButtonView extends LinearLayout {
 
-        // Background with rounded corners and semi-transparent color
-        GradientDrawable bgDrawable = new GradientDrawable();
-        bgDrawable.setColor(0x33000000); // 20% opacity Black
-        bgDrawable.setCornerRadius(AndroidUtilities.dp(14));
-        button.setBackground(bgDrawable);
+        private final ImageView iconView;
+        private final SimpleTextView labelView;
 
-        // Icon
-        ImageView icon = new ImageView(context);
-        icon.setImageResource(icResId);
-        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        );
-        iconParams.bottomMargin = AndroidUtilities.dp(6); // Gap between icon and label
-        button.addView(icon, iconParams);
+        public IconTextButtonView(Context context) {
+            this(context, null);
+        }
 
-        // Label
-        SimpleTextView textView = new SimpleTextView(context);
-        textView.setText(label);
-        textView.setTextSize(14);
-        textView.setTextColor(Color.WHITE);
-        textView.setGravity(Gravity.CENTER);
-        textView.setEllipsizeByGradient(true);
-        textView.setScrollNonFitText(true);
-        textView.setMaxLines(1);
-        textView.setSelected(true);
-        textView.setFocusable(true);
-        textView.setFocusableInTouchMode(true);
-        button.addView(textView, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT
-        ));
+        public IconTextButtonView(Context context, @Nullable AttributeSet attrs) {
+            this(context, attrs, 0);
+        }
 
-        return button;
+        public IconTextButtonView(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+            super(context, attrs, defStyleAttr);
+            setOrientation(VERTICAL);
+            setGravity(Gravity.CENTER_HORIZONTAL);
+            setPadding(
+                    AndroidUtilities.dp(6),
+                    AndroidUtilities.dp(8),
+                    AndroidUtilities.dp(6),
+                    AndroidUtilities.dp(8)
+            );
+
+            GradientDrawable bgDrawable = new GradientDrawable();
+            bgDrawable.setColor(0x33000000); // 20% black
+            bgDrawable.setCornerRadius(AndroidUtilities.dp(14));
+            setBackground(bgDrawable);
+
+            // Icon
+            iconView = new ImageView(context);
+            iconView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            addView(iconView, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 0, 0, 0, 6));
+
+            // Label
+            labelView = new SimpleTextView(context);
+            labelView.setTextSize(14);
+            labelView.setTextColor(Color.WHITE);
+            labelView.setGravity(Gravity.CENTER);
+            labelView.setEllipsizeByGradient(true);
+            labelView.setScrollNonFitText(true);
+            labelView.setMaxLines(1);
+            labelView.setSelected(true);
+            labelView.setFocusable(true);
+            labelView.setFocusableInTouchMode(true);
+
+            addView(labelView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL));
+
+            setClickable(true);
+            setFocusable(true);
+            setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
+            setAccessibilityDelegate(new AccessibilityDelegate() {
+                @Override
+                public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
+                    super.onInitializeAccessibilityNodeInfo(host, info);
+                    info.setClassName("Button");
+                }
+            });
+        }
+
+        public IconTextButtonView(Context context, String label, String tag, @DrawableRes int iconResId) {
+            this(context);
+            setLabel(label);
+            setButtonTag(tag);
+            setIcon(iconResId);
+        }
+
+        public void setIcon(@DrawableRes int resId) {
+            iconView.setImageResource(resId);
+        }
+
+        public void setLabel(String text) {
+            labelView.setText(text);
+            setContentDescription(text);
+        }
+
+        public void setButtonTag(String tag) {
+            setTag(tag);
+        }
+
+        public String getLabel() {
+            return labelView.getText().toString();
+        }
+
+        public ImageView getIconView() {
+            return iconView;
+        }
+
+        public SimpleTextView getLabelView() {
+            return labelView;
+        }
     }
-
 
     private class NestedFrameLayout extends SizeNotifierFrameLayout implements NestedScrollingParent3 {
 
@@ -15043,15 +15088,15 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             TLRPC.Chat chat = getMessagesController().getChat(chatId);
             if (ChatObject.isChannel(chat) && chatInfo != null && ChatObject.canManageCalls(chat) && chatInfo.call == null) {
                 if (chat.megagroup && !chat.gigagroup) {
-                    button = createButton(context, getString(R.string.VoipGroupVoiceChat), getString(R.string.VoipGroupVoiceChat), R.drawable.ic_live_stream_profile);
+                    button = new IconTextButtonView(context, getString(R.string.VoipGroupVoiceChat), getString(R.string.VoipGroupVoiceChat), R.drawable.ic_live_stream_profile);
                 } else {
-                    button = createButton(context, getString(R.string.VoipChannelVoiceChat), getString(R.string.VoipChannelVoiceChat), R.drawable.ic_live_stream_profile);
+                    button = new IconTextButtonView(context, getString(R.string.VoipChannelVoiceChat), getString(R.string.VoipChannelVoiceChat), R.drawable.ic_live_stream_profile);
                 }
             }else if (chatInfo != null && ChatObject.canManageCalls(chat) && chatInfo.call == null) {
-                button = createButton(context, getString(R.string.VoipGroupVoiceChat), getString(R.string.VoipGroupVoiceChat), R.drawable.ic_live_stream_profile);
+                button = new IconTextButtonView(context, getString(R.string.VoipGroupVoiceChat), getString(R.string.VoipGroupVoiceChat), R.drawable.ic_live_stream_profile);
             }
         } else if(callItemVisible) {
-            button = createButton(context, getString(R.string.Call), getString(R.string.Call), R.drawable.ic_call_profile);
+            button = new IconTextButtonView(context, getString(R.string.Call), getString(R.string.Call), R.drawable.ic_call_profile);
         }
         if (button == null) return;
 
@@ -15063,7 +15108,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
     private void addVideoCallButton(Context context) {
         if (!videoCallItemVisible) return;
-        View button = createButton(context, getString(R.string.GroupCallCreateVideo), getString(R.string.GroupCallCreateVideo), R.drawable.ic_video_profile);
+        View button = new IconTextButtonView(context, getString(R.string.GroupCallCreateVideo), getString(R.string.GroupCallCreateVideo), R.drawable.ic_video_profile);
         button.setOnClickListener(v -> {
             onContact(video_call_item);
         });
@@ -15073,7 +15118,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private void addShareButton(Context context) {
         if (!shareButtonVisible) return;
 
-        View button = createButton(context, getString(R.string.BotShare), getString(R.string.BotShare), R.drawable.ic_share_profile);
+        View button = new IconTextButtonView(context, getString(R.string.BotShare), getString(R.string.BotShare), R.drawable.ic_share_profile);
         button.setOnClickListener(v -> {
             shareProfile();
         });
@@ -15083,7 +15128,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private void addReportButton(Context context) {
         if (!reportButtonVisible) return;
 
-        View button = createButton(context, getString(R.string.ReportBot), getString(R.string.ReportBot), R.drawable.ic_report_profile);
+        View button = new IconTextButtonView(context, getString(R.string.ReportBot), getString(R.string.ReportBot), R.drawable.ic_report_profile);
         button.setOnClickListener(v -> {
             ReportBottomSheet.openChat(ProfileActivity.this, getDialogId());
         });
@@ -15091,20 +15136,33 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     }
 
     private void addMuteButton(Context context) {
-        View button;
         if (isNotificationsEnabled()) {
-            button = createButton(context, getString(R.string.Mute), getString(R.string.Mute), R.drawable.ic_mute_profile);
+            notificationsButton = new IconTextButtonView(context, getString(R.string.Mute), getString(R.string.Mute), R.drawable.ic_mute_profile);
         } else {
-            button = createButton(context, getString(R.string.Unmute), getString(R.string.Unmute), R.drawable.ic_unmute_profile);
+            notificationsButton = new IconTextButtonView(context, getString(R.string.Unmute), getString(R.string.Unmute), R.drawable.ic_unmute_profile);
         }
-        button.setOnClickListener(this::onNotificationButtonClick);
-        buttonsContainer.addView(button, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f, 0, 0, 10, 0));
+        notificationsButton.setOnClickListener(this::onNotificationButtonClick);
+        buttonsContainer.addView(notificationsButton, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f, 0, 0, 10, 0));
+    }
+
+    private void toggleMuteButton(boolean muted) {
+        if (muted) {
+            notificationsButton.setIcon(R.drawable.ic_unmute_profile);
+            notificationsButton.setLabel(LocaleController.getString(R.string.Unmute));
+            notificationsButton.setButtonTag(LocaleController.getString(R.string.Unmute));
+            notificationsButton.announceForAccessibility(LocaleController.getString(R.string.Unmute));
+        } else {
+            notificationsButton.setIcon(R.drawable.ic_mute_profile);
+            notificationsButton.setLabel(LocaleController.getString(R.string.Mute));
+            notificationsButton.setButtonTag(LocaleController.getString(R.string.Mute));
+            notificationsButton.announceForAccessibility(LocaleController.getString(R.string.Mute));
+        }
     }
 
     private void addLeaveButton(Context context) {
         if (!leaveButtonVisible) return;
 
-        View button = createButton(context, getString(R.string.VoipGroupLeave), getString(R.string.VoipGroupLeave), R.drawable.ic_leave_profile);
+        View button = new IconTextButtonView(context, getString(R.string.VoipGroupLeave), getString(R.string.VoipGroupLeave), R.drawable.ic_leave_profile);
         button.setOnClickListener(v -> {
             leaveChatPressed();
         });
@@ -15118,7 +15176,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         }
         if (!writeButtonVisible) return;
 
-        View button = createButton(context, getString(R.string.Message), getString(R.string.Message), R.drawable.ic_message_profile);
+        View button = new IconTextButtonView(context, getString(R.string.Message), getString(R.string.Message), R.drawable.ic_message_profile);
         button.setOnClickListener(v -> {
             if (writeButton != null && writeButton.getTag() != null) {
                 return;
@@ -15131,7 +15189,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private void addJoinButton(Context context) {
         if (!joinButtonVisible && joinRow == -1) return;
 
-        View button = createButton(context, getString(R.string.ProfileJoinChannel), getString(R.string.ProfileJoinChannel), R.drawable.ic_join_profile);
+        View button = new IconTextButtonView(context, getString(R.string.ProfileJoinChannel), getString(R.string.ProfileJoinChannel), R.drawable.ic_join_profile);
         button.setOnClickListener(v -> {
             onJoinButtonClick();
         });
@@ -15141,7 +15199,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private void addGiftButton(Context context) {
         if (!giftButtonVisible) return;
 
-        View button = createButton(context, getString(R.string.Gift2Gift), getString(R.string.Gift2Gift), R.drawable.ic_gift_profile);
+        View button = new IconTextButtonView(context, getString(R.string.Gift2Gift), getString(R.string.Gift2Gift), R.drawable.ic_gift_profile);
         button.setOnClickListener(this::onGiftButtonClick);
         buttonsContainer.addView(button, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f, 0, 0, 10, 0));
     }
@@ -15164,7 +15222,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
             checkCanSendStoryForPosting();
         }
 
-        View button = createButton(context, getString(R.string.AddStory), getString(R.string.AddStory), R.drawable.ic_story_profile);
+        View button = new IconTextButtonView(context, getString(R.string.AddStory), getString(R.string.AddStory), R.drawable.ic_story_profile);
         button.setOnClickListener(v -> {
             onAddStoryClick();
         });
@@ -15225,7 +15283,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
     private void addBlockAndDeleteButton(Context context) {
         if (!isBot || userBlocked) return;
 
-        View button = createButton(context, getString(R.string.Stop), getString(R.string.Stop), R.drawable.ic_block_profile);
+        View button = new IconTextButtonView(context, getString(R.string.Stop), getString(R.string.Stop), R.drawable.ic_block_profile);
         button.setOnClickListener(v -> {
             onStopButtonClick();
         });
@@ -15408,6 +15466,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                     if (notificationsRow >= 0 && listAdapter != null) {
                         listAdapter.notifyItemChanged(notificationsRow);
                     }
+                    toggleMuteButton(true);
                 }
             }
 
@@ -15432,6 +15491,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
                 if (notificationsRow >= 0 && listAdapter != null) {
                     listAdapter.notifyItemChanged(notificationsRow);
                 }
+                toggleMuteButton(!muted);
             }
 
             @Override
