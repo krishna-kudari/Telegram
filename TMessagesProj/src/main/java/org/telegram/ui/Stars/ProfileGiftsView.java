@@ -355,9 +355,10 @@ public class ProfileGiftsView extends View implements NotificationCenter.Notific
         final float scaleX = avatarContainer.getScaleX();
         final float scaleY = avatarContainer.getScaleY();
 
-        final float avatarCx = avatarContainer.getX() + avatarW / 2f;
+        final float avatarCx = avatarContainer.getX();
         final float avatarCy = avatarContainer.getY();
         final float avatarCenterY = avatarCy + (avatarH * scaleY) / 2f;
+        final float avatarCenterX = avatarCx + (avatarW * scaleX) / 2f;
 
         final float baseRadius = (Math.min(avatarW * scaleX, avatarH * scaleY) / 2f) + dp(32);
 
@@ -380,7 +381,7 @@ public class ProfileGiftsView extends View implements NotificationCenter.Notific
             float stretchX = 1f + 0.6f * (1f - Math.abs(sin));
             float stretchY = 1f + 0.2f * (Math.abs(cos));
 
-            float diamondX = avatarCx + baseRadius * cos * stretchX;
+            float diamondX = avatarCenterX + baseRadius * cos * stretchX;
             float diamondY = avatarCenterY + baseRadius * sin * stretchY;
 
             // Find group index
@@ -406,7 +407,7 @@ public class ProfileGiftsView extends View implements NotificationCenter.Notific
             float eased = CubicBezierInterpolator.EASE_OUT_QUINT.getInterpolation(localProgress);
             float curveY = eased * eased;
 
-            float drawX = lerp(diamondX, avatarCx, eased);
+            float drawX = lerp(diamondX, avatarCenterX, eased);
             float drawY = lerp(diamondY, avatarCenterY, curveY);
 
             gift.draw(

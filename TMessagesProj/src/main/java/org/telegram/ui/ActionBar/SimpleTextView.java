@@ -1337,4 +1337,9 @@ public class SimpleTextView extends View implements Drawable.Callback {
         public void setPressed(boolean value);
         public boolean isPressed();
     }
+
+    public void setTextShadow(float radius, float dx, float dy, int color) {
+        textPaint.setShadowLayer(radius, dx, dy, color);
+        invalidate();
+    }
 }
