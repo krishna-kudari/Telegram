@@ -41,6 +41,8 @@ public class ProfileGiftsView extends View implements NotificationCenter.Notific
     private final int currentAccount;
     private final long dialogId;
     private final View avatarContainer;
+
+    private final ActionBar actionBar;
     private final ProfileActivity.AvatarImageView avatarImage;
     private final Theme.ResourcesProvider resourcesProvider;
 
@@ -52,7 +54,7 @@ public class ProfileGiftsView extends View implements NotificationCenter.Notific
         }
     }
 
-    public ProfileGiftsView(Context context, int currentAccount, long dialogId, @NonNull View avatarContainer, ProfileActivity.AvatarImageView avatarImage, Theme.ResourcesProvider resourcesProvider) {
+    public ProfileGiftsView(Context context, int currentAccount, long dialogId, @NonNull View avatarContainer, ProfileActivity.AvatarImageView avatarImage, Theme.ResourcesProvider resourcesProvider, ActionBar actionBar) {
         super(context);
 
         this.currentAccount = currentAccount;
@@ -62,7 +64,7 @@ public class ProfileGiftsView extends View implements NotificationCenter.Notific
         this.avatarImage = avatarImage;
 
         this.resourcesProvider = resourcesProvider;
-
+        this.actionBar = actionBar;
     }
 
     private float expandProgress;
@@ -335,11 +337,11 @@ public class ProfileGiftsView extends View implements NotificationCenter.Notific
 
         // 6 angles for 6 gifts
         final double[] ANGLES = {
-                Math.toRadians(200),
-                Math.toRadians(-25),
+                Math.toRadians(210),
+                Math.toRadians(-35),
                 Math.toRadians(150),
                 Math.toRadians(35),
-                Math.toRadians(170),
+                Math.toRadians(185),
                 Math.toRadians(5),
         };
 
@@ -357,8 +359,22 @@ public class ProfileGiftsView extends View implements NotificationCenter.Notific
 
         final float avatarCx = avatarContainer.getX();
         final float avatarCy = avatarContainer.getY();
-        final float avatarCenterY = avatarCy + (avatarH * scaleY) / 2f;
         final float avatarCenterX = avatarCx + (avatarW * scaleX) / 2f;
+        final float targetAvatarCenterY = avatarCy + (avatarH * scaleY) / 2f;
+        final float startAvatarCenterY = (actionBar.getOccupyStatusBar() ? AndroidUtilities.statusBarHeight : 0) + AndroidUtilities.dpf2(75f); // 20f + 55f
+
+        float progress = progressToCenter;
+
+        float avatarCenterY;
+        if (progress <= 0.4f) {
+            avatarCenterY = startAvatarCenterY;
+        } else if (progress >= 0.65f) {
+            avatarCenterY = targetAvatarCenterY;
+        } else {
+            float mappedProgress = (progress - 0.4f) / (0.65f - 0.4f); // map [0.45 → 0.85] to [0 → 1]
+            float eased = (float) (1 - Math.pow(1 - mappedProgress, 2)); // optional easing
+            avatarCenterY = startAvatarCenterY + (targetAvatarCenterY - startAvatarCenterY) * eased;
+        }
 
         final float baseRadius = (Math.min(avatarW * scaleX, avatarH * scaleY) / 2f) + dp(32);
 
