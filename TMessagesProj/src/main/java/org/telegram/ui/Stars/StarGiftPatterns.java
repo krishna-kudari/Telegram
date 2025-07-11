@@ -2,12 +2,14 @@ package org.telegram.ui.Stars;
 
 import static org.telegram.messenger.AndroidUtilities.dp;
 import static org.telegram.messenger.AndroidUtilities.dpf2;
+import static org.telegram.messenger.AndroidUtilities.lerp;
 
 import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.CubicBezierInterpolator;
 
 public class StarGiftPatterns {
 
@@ -209,4 +211,72 @@ public class StarGiftPatterns {
         }
     }
 
+    public static void drawDiamondPattern(Canvas canvas, Drawable pattern, float centerX, float centerY, float alpha, float progress, float scale) {
+        if (alpha <= 0.0f || pattern == null) return;
+
+        final float baseRadius1 = dp(80);  // slightly smaller diamond
+        final float baseRadius2 = dp(130); // outer diamond
+        final float[] sizes1 = new float[] { 30, 30, 30, 30, 30, 30, 30, 30 };
+        final float[] sizes2 = new float[] { 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25 };
+
+        final double[] angles1 = new double[8];
+        for (int i = 0; i < 8; i++) angles1[i] = Math.toRadians(i * 45); // 8-way diamond
+
+        final double[] angles2 = new double[12];
+        for (int i = 0; i < 12; i++) angles2[i] = Math.toRadians(i * 30); // interleaved 12-way outer diamond
+
+        final float effectiveProgress = (progress - 0.25f) / 0.75f; // starts at 0.25, ends at 1
+        final float maxDelay = 0.25f;
+
+        drawLayer(canvas, pattern, centerX, centerY, alpha, effectiveProgress, 1, baseRadius1, angles1, sizes1, false, maxDelay);
+        drawLayer(canvas, pattern, centerX, centerY, alpha, effectiveProgress, 1, baseRadius2, angles2, sizes2, true, maxDelay + 0.1f);
+    }
+
+    private static void drawLayer(Canvas canvas, Drawable pattern, float centerX, float centerY, float alpha, float progressToCenter, float scale,
+                                  float baseRadius, double[] angles, float[] sizes, boolean isSecondLayer, float maxDelay) {
+
+        for (int i = 0; i < angles.length; i++) {
+            double angle = angles[i];
+            float cos = (float) Math.cos(angle);
+            float sin = (float) Math.sin(angle);
+
+            // Diamond stretch (narrower and taller)
+            float stretchX = 1f + 0.3f * (1f - Math.abs(sin)); // narrower
+            float stretchY = 1.0f + 0.1f * (1f - Math.abs(cos)); // taller
+
+            float targetX = centerX + baseRadius * cos * stretchX;
+            float targetY = centerY + baseRadius * sin * stretchY;
+
+            // Distance from x-axis determines delay weight
+            float axisDistance = 1f - Math.abs(sin); // range: [0,1], closer to X-axis = more delay
+            float delay = maxDelay * axisDistance;
+
+            // Local staggered progress
+            float localProgress = (progressToCenter - delay) / (1f - delay);
+            if (localProgress < 0f) localProgress = 0f;
+            else if (localProgress > 1f) localProgress = 1f;
+
+            float eased = CubicBezierInterpolator.EASE_OUT_QUINT.getInterpolation(localProgress);
+            float curvedY = eased * eased;
+
+            float x = lerp(targetX, centerX, eased);
+            float y = lerp(targetY, centerY, curvedY);
+
+            float sizeMultiplier;
+            if (isSecondLayer) {
+                sizeMultiplier = lerp(1.0f, 0.5f, eased); // shrink to 50% by center
+            } else {
+                sizeMultiplier = lerp(1.0f, 0.3f, eased); // slightly shrink first layer
+            }
+            float size = dpf2(sizes[i]) * sizeMultiplier;
+            float layerAlpha = isSecondLayer ? 0.18f : 0.35f;
+
+            pattern.setBounds(
+                    (int)(x - size / 2f), (int)(y - size / 2f),
+                    (int)(x + size / 2f), (int)(y + size / 2f)
+            );
+            pattern.setAlpha((int)(0xFF * alpha * layerAlpha));
+            pattern.draw(canvas);
+        }
+    }
 }
