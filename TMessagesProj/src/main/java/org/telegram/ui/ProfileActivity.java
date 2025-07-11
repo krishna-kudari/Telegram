@@ -5563,12 +5563,15 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         avatarContainer2.requestLayout();
 
         // init buttons
-        buttonsContainer = new LinearLayout(getContext());
-        buttonsContainer.setOrientation(LinearLayout.HORIZONTAL);
-        buttonsContainer.setGravity(Gravity.CENTER_VERTICAL);
-        avatarContainer2.addView(buttonsContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 12f, 0, 12f, 0f));
+        if (!myProfile && !isSettings()){
+            buttonsContainer = new LinearLayout(getContext());
+            buttonsContainer.setOrientation(LinearLayout.HORIZONTAL);
+            buttonsContainer.setGravity(Gravity.CENTER_VERTICAL);
+            avatarContainer2.addView(buttonsContainer, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL, 12f, 0, 12f, 0f));
 
-        updateButtonsContainer(context);
+            updateButtonsContainer(context);
+        }
+
         updateProfileData(true);
 
         writeButton = new RLottieImageView(context);
@@ -6069,6 +6072,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
         float width1 = (nameTextView[1].getPaint().measureText(nameTextView[1].getText().toString()) * nameScale) + nameTextView[1].getSideDrawablesSize();
         float startX = (avatarContainer2.getWidth() - width1)/2f;
         float endX = AndroidUtilities.dpf2(18f);
+        startX = Math.max(startX, endX);
 
         nameX = AndroidUtilities.lerp(startX, endX, value);
 
@@ -8021,6 +8025,7 @@ public class ProfileActivity extends BaseFragment implements NotificationCenter.
 
                     float startX = AndroidUtilities.dpf2(80);
                     float centerX = (avatarContainer2.getWidth() - width1) / 2f;
+                    centerX = Math.max(AndroidUtilities.dpf2(18), centerX);
                     nameX = AndroidUtilities.lerp(startX, centerX, diff);
 
                     float onlineStartX = AndroidUtilities.dp(80);
